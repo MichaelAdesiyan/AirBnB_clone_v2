@@ -34,6 +34,13 @@ class FileStorage:
             json.dump(temp, f)
 
     def delete(self, obj=None):
+        """A method of the class that deletes a
+            class object
+
+        Args:
+            obj (object, optional): object of a class
+            Defaults to None.
+        """
         if obj is None:
             pass
         else:
