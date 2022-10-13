@@ -3,7 +3,6 @@
 from importlib.metadata import metadata
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import  create_engine
-from sqlalchemy.schema import MetaData
 from models.base_model import Base
 from models.user import User
 from models.place import Place
@@ -11,7 +10,6 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
-import sys
 from os import getenv
 
 
@@ -41,9 +39,7 @@ class DBStorge:
                                       pool_pre_ping=True)
         #Base.metadata.create_all(self.__engine)
         if env == 'test':
-            metadata = MetaData(self.__engine)
-            metadata.reflect()
-            metadata.drop_all()
+            Base.metadata.drop_all(self.__engine)
 
     def all(self, cls=None):
         """_summary_
@@ -51,13 +47,52 @@ class DBStorge:
         Args:
             cls (_type_, optional): _description_. Defaults to None.
         """
-        Session = sessionmaker(bind=self.__engine)
-        self.__session = Session()
+
         dict = {}
         class_list = [State, City, Place, Review, User, Amenity]
         if cls is None:
-            pass
+            for c in class_list:
+                objects = self.__session.query(c)
+                for obj in objects:
+                    key = "{}.{}".format(
+                        obj.__class__.__name__,
+                        obj.id
+                    )
+                    dict[key] = obj
         else:
-            for class_obj in class_list:
-                if isinstance(cls, class_obj):
-                    print("good")
+            if type(cls) == str:
+                cls = eval(cls)
+            objects = self.__session.query(cls)
+            for obj in objects:
+                key = "{}.{}".format(
+                    obj.__class__.__name__,
+                    obj.id
+                )
+                dict[key] = obj
+
+    def new(self, obj):
+        """
+        adds the obj to the current database session
+        """
+        self.__session.add(obj)
+
+    def save(self):
+        """
+        commits all change in the session
+        """
+        self.__session.commit()
+
+    def delete(self, obj=None):
+        """
+        deletes from current db session
+
+        obj: the object to delete
+        """
+        if obj:
+            self.__session.delete(obj)
+
+    def reload(self):
+        """ create all table in the db """
+        Base.metadata.create_all(self.__engine)
+        Session = sessionmaker(bind=self.__engine)
+        self.__session = Session()
